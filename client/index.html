@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AtmosGrid — Air Quality Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <span class="brand-name">AtmosGrid</span>
+          <span class="brand-version">v2.4</span>
+        </div>
+        <nav class="tabs">
+          <span class="tab tab--active">Building Twin</span>
+          <span class="tab">Zones</span>
+          <span class="tab">Sensors</span>
+          <span class="tab">Reports</span>
+        </nav>
+        <div class="spacer"></div>
+        <div class="live-badge"><span class="live-dot"></span><span id="live-label">Connecting…</span></div>
+        <div class="avatar"></div>
+      </header>
+
+      <div class="body">
+        <aside class="sidebar">
+          <section class="panel">
+            <div class="panel-header"><span>Key performance</span><span class="panel-header-tag">Live</span></div>
+            <div id="kpis" class="kpi-list"></div>
+          </section>
+
+          <section class="panel panel--grow">
+            <div class="panel-header"><span>Active sensors</span><span id="sensor-count" class="panel-header-tag">—</span></div>
+            <div class="sensor-list-head">
+              <span></span><span>Zone</span><span>°C</span><span>RH</span><span>AQI</span>
+            </div>
+            <div id="sensor-list" class="sensor-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header"><span>Time series data</span><span class="panel-header-tag">Rolling</span></div>
+            <div class="chart-legend" id="chart-legend"></div>
+            <svg id="ts-chart" class="ts-chart"></svg>
+            <div class="chart-axis" id="chart-axis"></div>
+          </section>
+        </aside>
+
+        <main class="stage">
+          <canvas id="scene"></canvas>
+
+          <div class="stage-title">
+            <div class="stage-title-main">Sensor Network — Digital Twin</div>
+            <div class="stage-title-meta" id="stage-meta">— nodes · updated —</div>
+          </div>
+
+          <div class="param-switcher" id="param-switcher">
+            <button class="param-btn param-btn--active" data-metric="temperature">Temperature</button>
+            <button class="param-btn" data-metric="humidity">Humidity</button>
+            <button class="param-btn" data-metric="aqi">Air Quality</button>
+          </div>
+
+          <div class="legend-card" id="legend-card"></div>
+
+          <div class="rpi-badge"><span class="rpi-chip"></span>RPi 4 hosted portal</div>
+
+          <div id="tooltip" class="tooltip" hidden></div>
+          <div id="callouts" class="callouts"></div>
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
