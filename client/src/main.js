@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 import { fetchNodes, fetchReadings, fetchHistory } from './api.js';
 import { createBuildingScene } from './building-scene.js';
-import { METRICS, aqiBand, legendFor, formatValue, hexFor } from './color-scale.js';
+import { METRICS, vocBand, legendFor, formatValue, hexFor } from './color-scale.js';
 import { renderKPIs, renderSensorList, computeAverages } from './sidebar.js';
 import { renderTimeSeries, timeAxisLabels, CHART_SERIES } from './chart.js';
 
@@ -39,7 +39,7 @@ function renderLegendCard() {
   const legend = legendFor(metric);
   if (legend.kind === 'bands') {
     legendCard.innerHTML = `
-      <div class="legend-title">${METRICS.aqi.label} bands</div>
+      <div class="legend-title">${METRICS.voc.label} bands</div>
       <div class="legend-bands">
         ${legend.bands
           .map((b) => `<div class="legend-band"><i style="background:${b.color}"></i>${b.label}</div>`)
@@ -152,7 +152,7 @@ function updateTooltip() {
       <strong>${node.label}</strong>
       <div><span>Temperature:</span> ${formatValue('temperature', reading.temperature)}</div>
       <div><span>Humidity:</span> ${formatValue('humidity', reading.humidity)}</div>
-      <div><span>AQI:</span> ${formatValue('aqi', reading.aqi)} · ${aqiBand(reading.aqi).label}</div>
+      <div><span>VOC Index:</span> ${formatValue('voc', reading.voc)}${reading.voc == null ? '' : ` · ${vocBand(reading.voc).label}`}</div>
     `;
   }
   tooltip.hidden = false;

@@ -1,9 +1,9 @@
-import { METRICS, aqiBand, hexFor, formatValue, normalize } from './color-scale.js';
+import { METRICS, vocBand, hexFor, formatValue, normalize } from './color-scale.js';
 
-const KPI_METRICS = ['temperature', 'humidity', 'aqi'];
+const KPI_METRICS = ['temperature', 'humidity', 'voc'];
 
 function average(readings, key) {
-  const values = readings.filter((r) => !r.offline).map((r) => r[key]);
+  const values = readings.filter((r) => !r.offline && r[key] != null).map((r) => r[key]);
   if (!values.length) return null;
   return values.reduce((sum, v) => sum + v, 0) / values.length;
 }
@@ -26,7 +26,7 @@ export function renderKPIs(container, averages, previousAverages) {
     const value = averages[key];
     const t = value == null ? 0 : normalize(key, value);
     const color = value == null ? '#a8b7ba' : hexFor(key, value);
-    const badge = key === 'aqi' && value != null ? `<span class="kpi-badge">${aqiBand(value).label.toUpperCase()}</span>` : '';
+    const badge = key === 'voc' && value != null ? `<span class="kpi-badge">${vocBand(value).label.toUpperCase()}</span>` : '';
 
     return `
       <div class="kpi-card">
@@ -44,6 +44,10 @@ export function renderKPIs(container, averages, previousAverages) {
         </div>
       </div>`;
   }).join('');
+}
+
+function fixed(value, decimals) {
+  return value == null ? '—' : value.toFixed(decimals);
 }
 
 export function renderSensorList(container, nodes, readingsByNodeId) {
@@ -64,9 +68,9 @@ export function renderSensorList(container, nodes, readingsByNodeId) {
         <div class="sensor-row">
           <span class="status-dot"></span>
           <span class="sensor-name">${node.label}</span>
-          <span class="sensor-metric">${reading ? reading.temperature.toFixed(1) : '—'}</span>
-          <span class="sensor-metric">${reading ? reading.humidity.toFixed(0) : '—'}</span>
-          <span class="sensor-metric">${reading ? reading.aqi.toFixed(0) : '—'}</span>
+          <span class="sensor-metric">${fixed(reading?.temperature, 1)}</span>
+          <span class="sensor-metric">${fixed(reading?.humidity, 0)}</span>
+          <span class="sensor-metric">${fixed(reading?.voc, 0)}</span>
         </div>`;
     })
     .join('');

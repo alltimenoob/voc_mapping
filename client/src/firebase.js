@@ -1,12 +1,15 @@
 /**
- * Live sensor feed from Firebase Realtime Database. The RPi/ESP32 rig pushes
- * one node per reading under sensors/environment, alternating a
- * {temperature, timestamp} record and a {humidity, timestamp} record rather
- * than writing both fields together — so the newest *complete* pair can
- * straddle two pushes. VOC (sensors/unit1, sensors/unit2) isn't wired up yet.
+ * Live sensor feed from Firebase Realtime Database. The RPi/ESP32 rig writes:
+ *
+ *   live_data/<sensorId>            latest reading, overwritten in place
+ *   analytics/<sensorId>/<pushId>   append-only history, ~1 record/second
+ *
+ * Both hold { datetime, timestamp, temperature, humidity, voc_index }, where
+ * timestamp is epoch ms. An analytics record can lack temperature/humidity
+ * (e.g. the first push after the rig boots), so callers must tolerate gaps.
  */
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, query, orderByChild, limitToLast, get } from 'firebase/database';
+import { getDatabase, ref, query, orderByKey, limitToLast, startAfter, get } from 'firebase/database';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -17,10 +20,6 @@ const firebaseConfig = {
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
-
-// Pull a small window of recent pushes rather than just the last one, since
-// the latest push may only carry temperature or only humidity.
-const ENVIRONMENT_WINDOW = 10;
 
 let db = null;
 
@@ -34,37 +33,24 @@ function getDb() {
   return db;
 }
 
-/** Latest {temperature, humidity, timestamp}, merging the newest push of each field. */
-export async function fetchLatestEnvironment() {
-  const environmentQuery = query(
-    ref(getDb(), 'sensors/environment'),
-    orderByChild('timestamp'),
-    limitToLast(ENVIRONMENT_WINDOW)
-  );
-  const snapshot = await get(environmentQuery);
-  if (!snapshot.exists()) {
-    throw new Error('No environment readings in Firebase yet');
-  }
+/** Latest reading per sensor, keyed by sensor id (e.g. { sensor_1: {...}, sensor_2: {...} }). */
+export async function fetchLiveData() {
+  const snapshot = await get(ref(getDb(), 'live_data'));
+  return snapshot.val() ?? {};
+}
 
-  let latestTemperature = null;
-  let latestHumidity = null;
+/**
+ * Up to `limit` of a sensor's newest analytics records, oldest first, each
+ * with its push key as `key`. Pass `afterKey` to fetch only records pushed
+ * after that one. Push keys sort chronologically, so ordering by key needs
+ * no `.indexOn` rule.
+ */
+export async function fetchAnalytics(sensorId, { limit, afterKey = null }) {
+  const constraints = afterKey ? [orderByKey(), startAfter(afterKey), limitToLast(limit)] : [orderByKey(), limitToLast(limit)];
+  const snapshot = await get(query(ref(getDb(), `analytics/${sensorId}`), ...constraints));
+  const records = [];
   snapshot.forEach((child) => {
-    const record = child.val();
-    if (record.temperature != null && (!latestTemperature || record.timestamp > latestTemperature.timestamp)) {
-      latestTemperature = record;
-    }
-    if (record.humidity != null && (!latestHumidity || record.timestamp > latestHumidity.timestamp)) {
-      latestHumidity = record;
-    }
+    records.push({ key: child.key, ...child.val() });
   });
-
-  if (!latestTemperature || !latestHumidity) {
-    throw new Error('Incomplete environment reading in Firebase (missing temperature or humidity)');
-  }
-
-  return {
-    temperature: latestTemperature.temperature,
-    humidity: latestHumidity.humidity,
-    timestamp: Math.max(latestTemperature.timestamp, latestHumidity.timestamp)
-  };
+  return records;
 }

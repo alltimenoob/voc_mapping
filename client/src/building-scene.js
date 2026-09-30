@@ -87,7 +87,7 @@ export function createBuildingScene(canvas, nodes) {
   function update(readingsByNodeId, metricKey) {
     for (const [nodeId, entry] of entries) {
       const reading = readingsByNodeId.get(nodeId);
-      if (!reading || entry.node.offline) {
+      if (!reading || entry.node.offline || reading[metricKey] == null) {
         entry.room.material.color.set(0xa8b7ba);
         entry.room.material.emissive.set(0x000000);
         entry.room.scale.y = ROOM_MIN_HEIGHT;

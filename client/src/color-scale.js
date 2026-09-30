@@ -2,8 +2,8 @@ import * as THREE from 'three';
 
 /**
  * Color encodes magnitude, so every metric uses a SINGLE-HUE sequential ramp
- * (light -> dark), never a rainbow. AQI is the one exception: its bands are a
- * public EPA standard readers decode directly, so the category hues are kept.
+ * (light -> dark), never a rainbow. VOC is the one exception: it's read as
+ * categories (normal / elevated / high), so it uses banded category hues.
  *
  * The 3D stage sits on a light surface, so the light end of a sequential ramp
  * necessarily sits under 3:1 contrast there (verified against the palette
@@ -36,20 +36,23 @@ const HUMIDITY_RAMP = [
   '#9ec5f4' // high
 ].map((hex) => new THREE.Color(hex));
 
-/** EPA-style AQI bands, re-stepped where needed for 3:1 on the stage surface. */
-export const AQI_BANDS = [
-  { max: 50, color: '#1aa06a', label: 'Good' },
-  { max: 100, color: '#c9971a', label: 'Moderate' },
-  { max: 150, color: '#e2761f', label: 'Unhealthy (sensitive)' },
-  { max: 200, color: '#d1445f', label: 'Unhealthy' },
-  { max: 300, color: '#9b3fa0', label: 'Very unhealthy' },
-  { max: Infinity, color: '#7a1f3d', label: 'Hazardous' }
+/**
+ * Sensirion VOC Index (1–500) bands. Each sensor learns its own baseline and
+ * reports it as 100, so <=100 means at or below typical air for that room,
+ * and higher values mean more VOCs than usual.
+ */
+export const VOC_BANDS = [
+  { max: 100, color: '#1aa06a', label: 'Normal' },
+  { max: 150, color: '#c9971a', label: 'Slightly elevated' },
+  { max: 250, color: '#e2761f', label: 'Elevated' },
+  { max: 400, color: '#d1445f', label: 'High' },
+  { max: Infinity, color: '#9b3fa0', label: 'Very high' }
 ];
 
 export const METRICS = {
   temperature: { key: 'temperature', label: 'Temperature', unit: '°C', min: 15, max: 32, decimals: 1, ramp: TEMPERATURE_RAMP },
   humidity: { key: 'humidity', label: 'Humidity', unit: '%RH', min: 20, max: 70, decimals: 0, ramp: HUMIDITY_RAMP },
-  aqi: { key: 'aqi', label: 'Air Quality', unit: 'AQI', min: 0, max: 150, decimals: 0 }
+  voc: { key: 'voc', label: 'VOC Index', unit: '', min: 0, max: 250, decimals: 0 }
 };
 
 function clamp01(t) {
@@ -62,13 +65,13 @@ function sampleRamp(ramp, t) {
   return ramp[i].clone().lerp(ramp[i + 1], scaled - i);
 }
 
-export function aqiBand(aqi) {
-  return AQI_BANDS.find((b) => aqi <= b.max) ?? AQI_BANDS[AQI_BANDS.length - 1];
+export function vocBand(voc) {
+  return VOC_BANDS.find((b) => voc <= b.max) ?? VOC_BANDS[VOC_BANDS.length - 1];
 }
 
 /** THREE.Color for `value` under `metricKey`. */
 export function colorFor(metricKey, value) {
-  if (metricKey === 'aqi') return new THREE.Color(aqiBand(value).color);
+  if (metricKey === 'voc') return new THREE.Color(vocBand(value).color);
   const { min, max, ramp } = METRICS[metricKey];
   return sampleRamp(ramp, (value - min) / (max - min));
 }
@@ -91,8 +94,8 @@ export function formatValue(metricKey, value) {
 
 /** Legend content for the current metric: a gradient bar or a band swatch list. */
 export function legendFor(metricKey) {
-  if (metricKey === 'aqi') {
-    return { kind: 'bands', bands: AQI_BANDS };
+  if (metricKey === 'voc') {
+    return { kind: 'bands', bands: VOC_BANDS };
   }
   const { min, max, ramp } = METRICS[metricKey];
   const stops = ramp.map((c, i) => `#${c.getHexString()} ${(i / (ramp.length - 1)) * 100}%`);

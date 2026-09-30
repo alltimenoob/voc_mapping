@@ -1,7 +1,7 @@
 const SERIES = [
   { key: 'temperature', label: 'TEMP', color: '#c25f1f' },
   { key: 'humidity', label: 'RH', color: '#1d6d8c' },
-  { key: 'aqi', label: 'AQI', color: '#0e8f97' }
+  { key: 'voc', label: 'VOC', color: '#0e8f97' }
 ];
 
 const VIEW_W = 266;
